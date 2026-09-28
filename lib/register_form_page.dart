@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:p2709/model/user.dart';
+import 'package:p2709/user_info_page.dart';
 
 class RegisterFormPage extends StatefulWidget {
   const RegisterFormPage({super.key});
@@ -12,6 +14,7 @@ class _RegisterFormPageState extends State<RegisterFormPage> {
   bool _hidePass = true;
 
   final _formkey = GlobalKey<FormState>();
+  final _scaffoldkey = GlobalKey<ScaffoldState>();
 
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -32,6 +35,8 @@ class _RegisterFormPageState extends State<RegisterFormPage> {
   final _nameFocus = FocusNode();
   final _phoneFocus = FocusNode();
   final _passFocus = FocusNode();
+
+  User newUser = User();
 
   @override
   void dispose() {
@@ -59,6 +64,7 @@ class _RegisterFormPageState extends State<RegisterFormPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldkey,
       appBar: AppBar(title: Text("Register Form"), centerTitle: true),
 
       body: Form(
@@ -77,7 +83,12 @@ class _RegisterFormPageState extends State<RegisterFormPage> {
                 labelText: "Full Name *",
                 hintText: "What do people call you",
                 prefixIcon: Icon(Icons.person),
-                suffixIcon: Icon(Icons.delete_outline, color: Colors.red),
+                suffixIcon: GestureDetector(
+                  onTap: () {
+                    _nameController.clear();
+                  },
+                  child: Icon(Icons.delete_outline, color: Colors.red),
+                ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20),
                   borderSide: BorderSide(color: Colors.black, width: 2),
@@ -88,6 +99,7 @@ class _RegisterFormPageState extends State<RegisterFormPage> {
                 ),
               ),
               validator: (value) => _validateName(value!),
+              onSaved: (value) => newUser.name = value!,
             ),
 
             SizedBox(height: 10),
@@ -103,7 +115,12 @@ class _RegisterFormPageState extends State<RegisterFormPage> {
                 hintText: "Where can we reach you?",
                 helperText: "Phone format: (XXX)XXX-XXXX",
                 prefixIcon: Icon(Icons.call),
-                suffixIcon: Icon(Icons.delete_outline, color: Colors.red),
+                suffixIcon: GestureDetector(
+                  onLongPress: () {
+                    _phoneController.clear();
+                  },
+                  child: Icon(Icons.delete_outline, color: Colors.red),
+                ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20),
                   borderSide: BorderSide(color: Colors.black, width: 2),
@@ -124,6 +141,7 @@ class _RegisterFormPageState extends State<RegisterFormPage> {
               validator: (value) => _validatePhoneNumber(value!)
                   ? null
                   : 'Phone number must be entered as (###)###-#### ',
+              onSaved: (value) => newUser.phone = value!,
             ),
 
             SizedBox(height: 10),
@@ -135,7 +153,8 @@ class _RegisterFormPageState extends State<RegisterFormPage> {
                 icon: Icon(Icons.mail),
               ),
               keyboardType: TextInputType.emailAddress,
-              validator: (value) => _validateEmail(value!),
+              // validator: (value) => _validateEmail(value!),
+              onSaved: (value) => newUser.email = value!,
             ),
             SizedBox(height: 10),
 
@@ -151,10 +170,11 @@ class _RegisterFormPageState extends State<RegisterFormPage> {
                   child: Text(country),
                 );
               }).toList(),
-              onChanged: (data) {
-                print(data);
+              onChanged: (country) {
+                print(country);
                 setState(() {
-                  _selectedCountry = data;
+                  _selectedCountry = country;
+                  newUser.country = country!;
                 });
               },
               value: _selectedCountry,
@@ -174,6 +194,7 @@ class _RegisterFormPageState extends State<RegisterFormPage> {
               ),
               maxLines: 3,
               inputFormatters: [LengthLimitingTextInputFormatter(100)],
+              onSaved: (value) => newUser.story = value!,
             ),
 
             SizedBox(height: 10),
@@ -229,6 +250,7 @@ class _RegisterFormPageState extends State<RegisterFormPage> {
   void _submitForm() {
     if (_formkey.currentState!.validate()) {
       _formkey.currentState?.save();
+      _showDialog(name: _nameController.text);
       print('Form is valid');
       print("Form is valid");
       print('Name: ${_nameController.text}');
@@ -237,7 +259,7 @@ class _RegisterFormPageState extends State<RegisterFormPage> {
       print('Counrty: ${_selectedCountry}');
       print('Story: ${_storyController.text}');
     } else {
-      print('Form is not valid! Please review and correct');
+      _showMessage(message: 'Form is not valid! Please review and correct');
     }
   }
 
@@ -275,5 +297,57 @@ class _RegisterFormPageState extends State<RegisterFormPage> {
     } else {
       return null;
     }
+  }
+
+  void _showMessage({required String message}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: Duration(seconds: 5),
+        backgroundColor: Colors.red,
+        content: Text(
+          message,
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.w600,
+            fontSize: 18,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showDialog({required String name}) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(
+            "Registration sucessfull",
+            style: TextStyle(color: Colors.green),
+          ),
+          content: Text(
+            "$name is now verified register form",
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => UserInfoPage(userInfo: newUser),
+                  ),
+                );
+              },
+              child: Text(
+                "Verified",
+                style: TextStyle(color: Colors.green, fontSize: 18),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 }
